@@ -1,0 +1,1 @@
+nohup java -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=10036 -jar target/server-0.0.1-SNAPSHOT.jar --server.port=8081 &

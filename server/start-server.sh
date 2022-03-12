@@ -1,0 +1,1 @@
+nohup java -jar target/server-0.0.1-SNAPSHOT.jar --server.port=8080 >server.log 2>&1 &

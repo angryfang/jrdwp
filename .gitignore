@@ -1,31 +1,34 @@
-# Compiled Object files, Static and Dynamic libs (Shared Objects)
-*.o
-*.a
-*.so
+HELP.md
+server/target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
 
-# Folders
-_obj
-_test
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
 
-# Architecture specific extensions/prefixes
-*.[568vq]
-[568vq].out
+### IntelliJ IDEA ###
+.idea
+**/.idea
+*.iws
+*.iml
+*.ipr
 
-*.cgo1.go
-*.cgo2.c
-_cgo_defun.c
-_cgo_gotypes.go
-_cgo_export.*
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
 
-_testmain.go
-
-*.exe
-*.test
-*.prof
-.jrdwp_key
-jrdwp
-jrdwp.bin
-jrdwp.exe
-run-client
-run-server
-file
+### VS Code ###
+.vscode/

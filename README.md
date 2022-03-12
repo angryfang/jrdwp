@@ -1,110 +1,48 @@
-# jrdwp
-**J**ava **R**emote **D**ebugging through **W**ebsocket **P**roxy is a proxy for Java remote debugging. It likes Microsoft's [azure-websites-java-remote-debugging] (https://github.com/Azure/azure-websites-java-remote-debugging), but includes all of client and server side implementation(**azure-websites-java-remote-debugging repo** only published client side, the serverside is not opensource now).
+## 功能说明
+本机远程调试java程序demo，和[jrdwp](https://github.com/leonlee/jrdwp)的区别是服务端走的是Spring boot websocket，而不需要在nginx中进行配置。
 
-# Prerequisites:
-* Enable websocket endpoint (nginx version >= 1.3)
-* JDWP compatible debugger like Eclipse/Netbeans
+- 客户端：客户端由go jrdwp实现，因为打包的go客户端打包成二进制后可以直接运行
+- 服务端：由spring boot的websocket中转数据，然后通过tcpclient代理到具体的远端java应用
+- 因为交互的数据比较多，远程调试的时候速度会比较慢
 
-# Downloads
-https://github.com/leonlee/jrdwp/releases
 
-# Compiling & Building
-```bash
-#build according to development platform
-make build 
-#build with GOOS=linux GOARCH=amd64 CGO_ENABLED=0 for linux platform
-make linux
-#build with GOOS=windows GOARCH=386 CGO_ENABLED=0 for windows platform
-make windows
+## 使用步骤demo
+![](img/jrdwp.drawio.png)
+1. 打包java服务，启动两个服务，1个用来当成远端java服务，1个用来当做websocket服务。注意为了偷懒2个JAVA服务都使用了server的jar包
+```
+#进入服务端目录
+cd server
+mvn clean package -DskipTests
+# 启动远端需要测试的服务，开放了10036端口做为jdwp调试端口, 启动8081端口做为服务
+./start-remote.sh
+# 启动调试服务端，websocket服务使用8080端口
+./start-server.sh
 ```
 
-# Usage
-## Enable webosocket (nginx)
-```nginx
-#place before "server"
-map $http_upgrade $connection_upgrade {
-  default upgrade;
-  ''      close;
-}
-
-#add websocket location likes:
-location /jrdwp {
-  proxy_pass http://localhost:9877;
-  proxy_http_version 1.1;
-  proxy_set_header Upgrade $http_upgrade;
-  proxy_set_header Connection "upgrade";
-}
+2. 打包go客户端，启动jrdwp客户端
+客户端也可以通过wss访问https的服务端`-server-host=debug.xxx.com -server-port=443 -ws-schema=wss`
+```
+# 进入代码的go目录
+cd go
+# 编译生成jrdwp运行程序
+go build jrdwp.go
+# 开放一个本地8876端口给到idea调试
+./start-client
 ```
 
-## Start Java application with JDWP
-```bash
-java -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=127.0.0.1:5005 -jar foo.jar
-```
+3. idea打开server启动远程调试
+![](img/remote_jvm_debug.png)
+- 新增一个`Remote JVM Debug` 调试的配置，端口连接到本机的8876
+- 在TestController.hello方法中间打上断点
 
-## [Start jrdwp server on remote host] (start-server)
-```bash
-./jrdwp -mode server -bind-port 9877 -server-host 127.0.0.1  -allowed-jdwp-ports "5005" -ws-origin http://java.remote.com/
-```
+4. 浏览器访问http://localhost:8081/hello?name=zhangsan
+在浏览器访问以后可以发现我们成功进入了IDEA的断点
+![](img/debug.png)
 
-## Copy public key from remote host
-jrdwp server will generate .jrdwp_key under the working directory, please copy it's content and save as .jrdwp_key to jrdwp client working directory.
-
-## [Start jrdwp client on local box] (start-client)
-```bash
-./jrdwp -mode=client -bind-port=9876 -server-host=java.remote.com -server-port=80 -ws-origin=http://java.remote.com/ -jdwp-port=5006 -ws-path=jrdwp
-```
-## Open IDEA/Eclipse to connect to jrdwp client on localhost:9876
-```bash
- _________________
-< Enjoy yourself! >
- -----------------
-        \   ^__^
-         \  (oo)\_______
-            (__)\       )\/\
-                ||----w |
-                ||     ||
-```
-
-# Options
-## Flags of jrdwp server
-```bash
-    -mode string
-        jrdwp mode, "client" or "server" (default "client")
-    -bind-port int
-        bind port, default 9876 (default 9876)
-    -allowed-jdwp-ports string
-        allowed jdwp ports likes: "5005,5006"
-    -server-host string
-        jdwp server host, default ''
-    -ws-origin string
-        websocket request origin header
-    -ws-path string
-        websocket server path (default "jrdwp")
-    -server-deadline int
-    	  server deadline in minutes that server will shutdown on deadline, default 60 minutes (default 60)
-```
-
-## Flags of jrdwp client
-```bash
-    -mode string
-        jrdwp mode, "client" or "server" (default "client")
-    -bind-host string
-        bind host, default ''
-    -bind-port int
-        bind port, default 9876 (default 9876)
-    -server-host string
-        remote server host
-    -server-port int
-        remote server port, default 9877 (default 9877)
-    -ws-origin string
-        websocket request origin header
-    -ws-path string
-        websocket server path (default "jrdwp")
-    -jdwp-port int
-        jdwp port of remote application (default -1)
-```
-
-# Security
-* changes public key on server starting, verify token according to timestamp
-* specify "allowed-jdwp-ports" to prevent unexpected intrusions
-* bind jdwp ports to locally ports to prevent ports leaks
+## 后续优化
+本地启动客户端这一步可以通过请求远端服务进行优化, 因为懒惰只写一个思路
+- 本地请求：`sh -c "$(curl 'https://debug.xxx.com/jrdwp/operation?server=localhost:10036')"`
+- 响应的脚本执行以下步骤
+	- 下载jrdwp到本地, wget或者curl命令下载
+	- 赋予jrdwp执行权限，chmod u+x jrdwp
+	- 启动jrdwp客户端
