@@ -7,7 +7,7 @@
 
 
 ## 使用步骤demo
-![](img/jrdwp.drawio.png)
+![](./img/jrdwp.drawio.png)
 1. 打包java服务，启动两个服务，1个用来当成远端java服务，1个用来当做websocket服务。注意为了偷懒2个JAVA服务都使用了server的jar包
 ```
 #进入服务端目录
@@ -31,13 +31,13 @@ go build jrdwp.go
 ```
 
 3. idea打开server启动远程调试
-![](img/remote_jvm_debug.png)
+![](./img/remote_jvm_debug.png)
 - 新增一个`Remote JVM Debug` 调试的配置，端口连接到本机的8876
 - 在TestController.hello方法中间打上断点
 
 4. 浏览器访问http://localhost:8081/hello?name=zhangsan
 在浏览器访问以后可以发现我们成功进入了IDEA的断点
-![](img/debug.png)
+![](./img/debug.png)
 
 ## 后续优化
 本地启动客户端这一步可以通过请求远端服务进行优化, 因为懒惰只写一个思路
